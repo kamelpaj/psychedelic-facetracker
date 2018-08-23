@@ -4,7 +4,7 @@ final float initRange = 2.0;
 final float massMin = 1.0;
 final float massMax = 10.0;
 
-final float mouseForce = 0.1;
+final float mouseForce = 0.05;
 
 final float masterDampening = 0.9;
 final float noiseMulti = 0.1;
@@ -37,9 +37,14 @@ void setup() {
   }
 }
 
+
+
+PVector leftHand = new PVector();
+PVector rightHand = new PVector();
 void draw() {
   ArrayList<KSkeleton> skeletonArray =  kinect.getSkeletonColorMap();
   KJoint[] joints = null;
+
   //individual JOINTS
   for (int i = 0; i < skeletonArray.size(); i++) {
     KSkeleton skeleton = (KSkeleton) skeletonArray.get(i);
@@ -47,7 +52,10 @@ void draw() {
     if (skeleton.isTracked()) {
 
       joints = skeleton.getJoints();
-
+      
+      rightHand = getHandPos(joints[KinectPV2.JointType_HandRight]);
+      leftHand = getHandPos(joints[KinectPV2.JointType_HandLeft]);
+      
       //draw different color for each hand state
       drawHandState(joints[KinectPV2.JointType_HandRight]);
       drawHandState(joints[KinectPV2.JointType_HandLeft]);
@@ -128,11 +136,11 @@ void particleSolver(KJoint[] joints) {
 
     // attract to the mouse pointer
     if (bDoMouseForce) {
-      thisParticle.velocity.x += mouseForce * (joints[KinectPV2.JointType_HandRight].getX() - thisParticle.position.x);
-      thisParticle.velocity.y += mouseForce * (joints[KinectPV2.JointType_HandRight].getY() - thisParticle.position.y);
+      thisParticle.velocity.x += mouseForce * (leftHand.x - thisParticle.position.x);
+      thisParticle.velocity.y += mouseForce * (leftHand.y - thisParticle.position.y);
     } else {
-      thisParticle.velocity.x += mouseForce * (joints[KinectPV2.JointType_HandRight].getX() - thisParticle.position.x) * 0.01;
-      thisParticle.velocity.y += mouseForce * (joints[KinectPV2.JointType_HandRight].getY() - thisParticle.position.y) * 0.01;
+      thisParticle.velocity.x += mouseForce * (leftHand.x - thisParticle.position.x) * 0.01;
+      thisParticle.velocity.y += mouseForce * ( - thisParticle.position.y) * 0.01;
     }
 
     thisParticle.velocity.mult(masterDampening);
@@ -146,15 +154,37 @@ void particleSolver(KJoint[] joints) {
 }
 
 //draw hand state
-PVector getHandPosition(KJoint joint) {
-  //noStroke();
-  //pushMatrix();
-  //translate(joint.getX(), joint.getY(), joint.getZ());
+PVector getHandPos(KJoint joint) {
   return new PVector(joint.getX(), joint.getY());
-  //ellipse(0, 0, 70, 70);
-  //popMatrix();
 }
-
+void handState(int handState) {
+  switch(handState) {
+  case KinectPV2.HandState_Open:
+    fill(255);
+    text("OPEN", 500, 500);
+    bDoMouseForce = false;
+    fill(0, 255, 0);
+    break;
+  case KinectPV2.HandState_Closed:
+    fill(255);
+    text("CLOSED", 1000, 500); 
+    bDoMouseForce = true;
+    fill(255, 0, 0);
+    break;
+  case KinectPV2.HandState_Lasso:
+    fill(255);
+    text(handState, 500, 500); 
+    bDoMouseForce = false;
+    fill(0, 0, 255);
+    break;
+  case KinectPV2.HandState_NotTracked:
+    fill(255);
+    text(handState, 500, 500);  
+    bDoMouseForce = false;
+    fill(255, 255, 255);
+    break;
+  }
+}
 void mouseDragged() {
   bDoMouseForce = true;
 }
